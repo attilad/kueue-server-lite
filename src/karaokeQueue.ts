@@ -5,18 +5,18 @@ export interface Broadcaster {
 export class KaraokeQueue {
   private singers: string[] = [];
   private currentIndex: number = 0;
+  private onUpdate: (singers: string[]) => void = () => null;
   private broadcaster: Broadcaster | undefined;
 
-  constructor(broadcaster?: Broadcaster) {
+  constructor() {
     this.singers = [];
     this.currentIndex = 0;
-    this.broadcaster = broadcaster;
   }
 
   reset() {
     this.singers = [];
     this.currentIndex = 0;
-    this.broadcaster?.broadcastUpdate(this.showSingers());
+    this.onUpdate(this.showSingers());
   }
 
   addSinger(name: string): [boolean, string?] {
@@ -36,7 +36,7 @@ export class KaraokeQueue {
       this.currentIndex = this.singers.indexOf(currentSingerName);
     }
 
-    this.broadcaster?.broadcastUpdate(this.showSingers());
+    this.onUpdate(this.showSingers());
 
     return [true, `Singer '${name}' has been added.`];
   }
@@ -58,8 +58,7 @@ export class KaraokeQueue {
       this.currentIndex = this.singers.indexOf(currentSingerName);
     }
 
-    this.broadcaster?.broadcastUpdate(this.showSingers());
-
+    this.onUpdate(this.showSingers());
     return [true, `Priority singer '${name}' has been added.`];
   }
 
@@ -70,7 +69,7 @@ export class KaraokeQueue {
   nextSinger(): string {
     this.currentIndex = (this.currentIndex + 1) % this.singers.length;
     
-    this.broadcaster?.broadcastUpdate(this.showSingers());
+    this.onUpdate(this.showSingers());
 
     return this.currentSinger();
   }
@@ -103,7 +102,7 @@ export class KaraokeQueue {
       this.currentIndex %= this.singers.length;
     }
 
-    this.broadcaster?.broadcastUpdate(this.showSingers());
+    this.onUpdate(this.showSingers());
 
     return [true, `Singer '${name}' has been removed.`];
   }
@@ -119,8 +118,12 @@ export class KaraokeQueue {
       return [false, addMessage];
     }
 
-    this.broadcaster?.broadcastUpdate(this.showSingers());
+    this.onUpdate(this.showSingers());
     return [true, `Singer '${name}' has been bumped.`];
+  }
+
+  public set onUpate(callback: (singers: string[]) => void) {
+    this.onUpdate = callback;
   }
   
 }

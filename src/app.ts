@@ -3,20 +3,14 @@ import Koa from "koa";
 import Router from "koa-router";
 import bodyParser from "koa-bodyparser";
 import cors from "@koa/cors";
-import WebSocket from "ws";
+import { createServer } from "http";
+import { Server } from 'socket.io';
 
 import { KaraokeQueue } from "./karaokeQueue";
 
 const app = new Koa();
 const router = new Router();
-const karaoke = new KaraokeQueue({
-  broadcastUpdate: (singers) => {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN)
-        client.send(JSON.stringify(singers));
-    });
-  },
-});
+const karaoke = new KaraokeQueue();
 
 interface AddSingerRequestBody {
   name?: string;
@@ -154,26 +148,28 @@ router.post("/bump", (ctx) => {
 app.use(bodyParser());
 app.use(cors());
 
-const wss = new WebSocket.Server({ noServer: true });
-
-wss.on("connection", (ws) => {
-  console.log("Client connected");
-
-  ws.on("close", () => {
-    console.log("Client disconnected");
-  });
-});
-
 app.use(router.routes());
 app.use(router.allowedMethods());
 
+const httpServer = createServer(app.callback());
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+  }
+});
+
 const port = process.env.PORT || 3030;
-const server = app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
 
-server.on("upgrade", (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit("connection", ws, request);
+io.on('connection', (socket) => {
+  console.log('Client connected');
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
   });
 });
+
+karaoke.onUpate = (singers) => {
+  io.emit('singers', singers);
+};
