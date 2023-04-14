@@ -107,5 +107,20 @@ export class KaraokeQueue {
 
     return [true, `Singer '${name}' has been removed.`];
   }
+
+  bumpSinger(name: string): [boolean, string?] {
+    const [removeSuccess, removeMessage] = this.removeSinger(name);
+    if (!removeSuccess) {
+      return [false, removeMessage];
+    }
+
+    const [addSuccess, addMessage] = this.addPrioritySinger(name);
+    if (!addSuccess) {
+      return [false, addMessage];
+    }
+
+    this.broadcaster?.broadcastUpdate(this.showSingers());
+    return [true, `Singer '${name}' has been bumped.`];
+  }
   
 }

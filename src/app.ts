@@ -126,6 +126,31 @@ router.post("/remove", (ctx) => {
   }
 });
 
+router.post("/bump", (ctx) => {
+  const requestBody = ctx.request.body;
+
+  if (!isAddSingerRequestBody(requestBody)) {
+    ctx.throw(400, "Invalid request body.");
+  }
+
+  const { name } = requestBody as AddSingerRequestBody;
+  if (!name) {
+    ctx.throw(400, "Name is required.");
+  }
+
+  const [success, message] = karaoke.bumpSinger(name as string);
+  if (!success) {
+    ctx.status = 404; // Not Found status code
+    ctx.body = {
+      error: message,
+    };
+  } else {
+    ctx.body = {
+      message: message,
+    };
+  }
+});
+
 app.use(bodyParser());
 app.use(cors());
 

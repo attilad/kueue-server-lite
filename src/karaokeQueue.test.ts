@@ -123,4 +123,35 @@ describe('Karaoke', () => {
     expect(karaoke.nextSinger()).toBe('Paul');
     expect(karaoke.showSingers()).toEqual(['Paul', 'John']);
   });
+
+  test('bump singer', () => {
+    karaoke.addSinger('John');
+    karaoke.addSinger('Paul');
+    karaoke.addSinger('George');
+    karaoke.addSinger('Ringo');
+    karaoke.addSinger('Yoko');
+
+    karaoke.bumpSinger('Ringo');
+    expect(karaoke.showSingers()).toEqual(['John', 'Paul', 'Ringo', 'George', 'Yoko']);
+  });
+
+  test('bump first singer', () => {
+    karaoke.addSinger('John');
+    karaoke.addSinger('Paul');
+    karaoke.addSinger('George');
+    karaoke.addSinger('Ringo');
+
+    karaoke.bumpSinger('John');
+    expect(karaoke.showSingers()).toEqual(['Paul', 'George', 'John', 'Ringo']);
+  });
+
+  test('bump next singer', () => {
+    karaoke.addSinger('John');
+    karaoke.addSinger('Paul');
+    karaoke.addSinger('George');
+    karaoke.addSinger('Ringo');
+
+    karaoke.bumpSinger('Paul');
+    expect(karaoke.showSingers()).toEqual(['John', 'George', 'Paul', 'Ringo']);
+  });
 });
