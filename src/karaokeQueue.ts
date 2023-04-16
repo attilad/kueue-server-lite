@@ -74,6 +74,14 @@ export class KaraokeQueue {
     return this.currentSinger();
   }
 
+  previousSinger(): string {
+    this.currentIndex = this.currentIndex === 0 ? this.singers.length - 1 : this.currentIndex - 1;
+    
+    this.onUpdate(this.showSingers());
+
+    return this.currentSinger();
+  }
+
   showSingers(): string[] {
     if (this.currentIndex === 0) {
       return this.singers;

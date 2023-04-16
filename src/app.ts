@@ -5,6 +5,7 @@ import bodyParser from "koa-bodyparser";
 import cors from "@koa/cors";
 import { createServer } from "http";
 import { Server } from 'socket.io';
+import { z, AnyZodObject } from "zod";
 
 import { KaraokeQueue } from "./karaokeQueue";
 
@@ -12,14 +13,25 @@ const app = new Koa();
 const router = new Router();
 const karaoke = new KaraokeQueue();
 
-interface AddSingerRequestBody {
-  name?: string;
-}
+const MutateSingerSchema = z.object({
+  name: z.string()
+});
 
-function isAddSingerRequestBody(obj: any): obj is AddSingerRequestBody {
-  return (
-    obj && (typeof obj.name === "string" || typeof obj.name === "undefined")
-  );
+type MutateSingerSchema = z.infer<typeof MutateSingerSchema>;
+
+const AddManySchema = z.object({
+  names: z.array(z.string())
+});
+
+type AddManySchema = z.infer<typeof AddManySchema>;
+
+const validateBody = (schema: AnyZodObject) => (ctx: Koa.Context, next: () => Promise<any>) => {
+  try {
+    schema.parse(ctx.request.body);
+    return next();
+  } catch (err) {
+    ctx.throw(400, "Invalid request body.");
+  }
 }
 
 router.post("/reset", (ctx) => {
@@ -39,24 +51,21 @@ router.post("/next", (ctx) => {
   };
 });
 
+router.post("/back", (ctx) => {
+  ctx.body = {
+    previousSinger: karaoke.previousSinger(),
+  };
+});
+
 router.get("/singers", (ctx) => {
   ctx.body = {
     singers: karaoke.showSingers(),
   };
 });
 
-router.post("/add", (ctx) => {
-  const requestBody = ctx.request.body;
-
-  if (!isAddSingerRequestBody(requestBody)) {
-    ctx.throw(400, "Invalid request body.");
-  }
-
-  const { name } = requestBody as AddSingerRequestBody;
-  if (!name) {
-    ctx.throw(400, "Name is required.");
-  }
-
+router.post("/add", validateBody(MutateSingerSchema), (ctx) => {
+  const { name } = ctx.request.body as MutateSingerSchema;
+  
   const [success, message] = karaoke.addSinger(name as string);
   if (!success) {
     ctx.status = 409; // Conflict status code
@@ -70,17 +79,35 @@ router.post("/add", (ctx) => {
   }
 });
 
-router.post("/add-priority", (ctx) => {
-  const requestBody = ctx.request.body;
+router.post("/add-many", validateBody(AddManySchema),(ctx) => {
+  const { names } = ctx.request.body as AddManySchema;
 
-  if (!isAddSingerRequestBody(requestBody)) {
-    ctx.throw(400, "Invalid request body.");
+  let allSuccess = true;
+  let messages: string[] = [];
+
+  for (const name of names) {
+    const [success, message] = karaoke.addSinger(name as string);
+    if (!success) {
+      allSuccess = false;
+    }
+    
+    if(message) messages.push(message);
   }
 
-  const { name } = requestBody as AddSingerRequestBody;
-  if (!name) {
-    ctx.throw(400, "Name is required.");
+  if (!allSuccess) {
+    ctx.status = 409; // Conflict status code
+    ctx.body = {
+      error: messages,
+    };
+  } else {
+    ctx.body = {
+      message: messages,
+    };
   }
+});
+
+router.post("/add-priority", validateBody(MutateSingerSchema), (ctx) => {
+  const { name } = ctx.request.body as MutateSingerSchema;
 
   const [success, message] = karaoke.addPrioritySinger(name as string);
   if (!success) {
@@ -95,17 +122,8 @@ router.post("/add-priority", (ctx) => {
   }
 });
 
-router.post("/remove", (ctx) => {
-  const requestBody = ctx.request.body;
-
-  if (!isAddSingerRequestBody(requestBody)) {
-    ctx.throw(400, "Invalid request body.");
-  }
-
-  const { name } = requestBody as AddSingerRequestBody;
-  if (!name) {
-    ctx.throw(400, "Name is required.");
-  }
+router.post("/remove", validateBody(MutateSingerSchema), (ctx) => {
+  const { name } = ctx.request.body as MutateSingerSchema;
 
   const [success, message] = karaoke.removeSinger(name as string);
   if (!success) {
@@ -120,17 +138,8 @@ router.post("/remove", (ctx) => {
   }
 });
 
-router.post("/bump", (ctx) => {
-  const requestBody = ctx.request.body;
-
-  if (!isAddSingerRequestBody(requestBody)) {
-    ctx.throw(400, "Invalid request body.");
-  }
-
-  const { name } = requestBody as AddSingerRequestBody;
-  if (!name) {
-    ctx.throw(400, "Name is required.");
-  }
+router.post("/bump", validateBody(MutateSingerSchema), (ctx) => {
+  const { name } = ctx.request.body as MutateSingerSchema;
 
   const [success, message] = karaoke.bumpSinger(name as string);
   if (!success) {

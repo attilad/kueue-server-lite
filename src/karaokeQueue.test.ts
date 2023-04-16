@@ -154,4 +154,26 @@ describe('Karaoke', () => {
     karaoke.bumpSinger('Paul');
     expect(karaoke.showSingers()).toEqual(['John', 'George', 'Paul', 'Ringo']);
   });
+
+  test('previous singer', () => {
+    karaoke.addSinger('John');
+    karaoke.addSinger('Paul');
+    karaoke.addSinger('George');
+    karaoke.addSinger('Ringo');
+
+    expect(karaoke.nextSinger()).toBe('Paul');
+    expect(karaoke.showSingers()).toEqual(['Paul', 'George', 'Ringo', 'John' ]);
+    expect(karaoke.previousSinger()).toBe('John');
+    expect(karaoke.showSingers()).toEqual(['John', 'Paul', 'George', 'Ringo' ]);
+  });
+
+  test('previous singer at queue start', () => {
+    karaoke.addSinger('John');
+    karaoke.addSinger('Paul');
+    karaoke.addSinger('George');
+    karaoke.addSinger('Ringo');
+
+    expect(karaoke.previousSinger()).toBe('Ringo');
+    expect(karaoke.showSingers()).toEqual(['Ringo', 'John', 'Paul', 'George']);
+  });
 });
